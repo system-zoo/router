@@ -1,0 +1,84 @@
+#cloud-config
+
+coreos:
+  update:
+    reboot-strategy: off
+
+  units:
+    # Run consul
+    - name: consul.service
+      command: start
+      content: |
+        [Unit]
+        Description=Run consul
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker kill consul
+        ExecStartPre=-/usr/bin/docker rm consul
+        ExecStartPre=/usr/bin/docker pull progrium/consul:latest
+        ExecStart=/usr/bin/docker run --name consul -h %H -v /data/consul:/data \
+                               -p 8300:8300 \
+                               -p 8301:8301 \
+                               -p 8301:8301/udp \
+                               -p 8302:8302 \
+                               -p 8302:8302/udp \
+                               -p 8400:8400 \
+                               -p 8500:8500 \
+                               -p 53:53/udp \
+                               progrium/consul:latest -server -advertise $public_ipv4 -bootstrap-expect 1
+
+        ExecStop=/usr/bin/docker stop consul
+
+    # Run registrator
+    - name: registrator.service
+      command: start
+      content: |
+        [Unit]
+        Description=Run registrator
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker kill registrator
+        ExecStartPre=-/usr/bin/docker rm registrator
+        ExecStartPre=/usr/bin/docker pull gliderlabs/registrator:master
+        ExecStart=/usr/bin/docker run --name registrator -v /var/run/docker.sock:/tmp/docker.sock -h %H gliderlabs/registrator:master -ip $public_ipv4 -resync 60 consul://$public_ipv4:8500
+        ExecStop=/usr/bin/docker stop registrator
+
+    # Run httpbin
+    - name: httpbin.service
+      command: start
+      content: |
+        [Unit]
+        Description=Run httpbin
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker kill httpbin
+        ExecStartPre=-/usr/bin/docker rm httpbin
+        ExecStartPre=/usr/bin/docker pull citizenstig/httpbin
+        ExecStart=/usr/bin/docker run -P -e SERVICE_NAME=httpbin-1-1 --name httpbin-1 citizenstig/httpbin
+        ExecStop=/usr/bin/docker stop httpbin
+
+    # Run httpbin
+    - name: httpbin2.service
+      command: start
+      content: |
+        [Unit]
+        Description=Run httpbin number 2
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker kill httpbin2
+        ExecStartPre=-/usr/bin/docker rm httpbin2
+        ExecStartPre=/usr/bin/docker pull citizenstig/httpbin
+        ExecStart=/usr/bin/docker run -P -e SERVICE_NAME=httpbin-1-2 --name httpbin-2 citizenstig/httpbin
+        ExecStop=/usr/bin/docker stop httpbin2
