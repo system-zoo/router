@@ -18,6 +18,6 @@ trait ConsulRouterConfig extends CachedRouterConfig {
 
   override def serviceLocationLoader(service: String, version: Int, revision: Int): Future[ServiceLocationCacheItem] =
     consulClient.getService(s"$service-$version-$revision").map { xs =>
-      ServiceLocationCacheItem(xs.map(x => s"http://${x.Address}:${x.ServicePort}"))
+      ServiceLocationCacheItem(xs.map(x => s"http://${x.ServiceAddress}:${x.ServicePort}"))
     }
 }

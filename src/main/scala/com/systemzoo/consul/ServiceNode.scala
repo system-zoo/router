@@ -8,8 +8,9 @@ case class ServiceNode(
                         ServiceID      : String,
                         ServiceName    : String,
                         ServiceTags    : Option[Seq[String]],
+                        ServiceAddress : String,
                         ServicePort    : Int
                         )
 object ServiceNode extends DefaultJsonProtocol with NullOptions {
-  implicit val format = jsonFormat6(ServiceNode.apply)
+  implicit val format = jsonFormat7(ServiceNode.apply)
 }
